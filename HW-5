@@ -1,0 +1,144 @@
+---
+title: "Homework 5"
+author: "Ben Lovelace"
+date: "BRL979"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.height=3, fig.width=4, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+```
+
+```{r include=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(mosaic)
+library(kableExtra)
+library(tinytex)
+```
+
+[Github Link](https://github.com/ben-lovelace/HW_5)
+
+------------------------------------------------------------------------
+
+# **Question 1:**
+
+The null hypothesis being tested is that the number of trades being flagged by the SEC as illegal is due to blind luck rather than illegal activity. 
+
+The test statistic is the 70 trades flagged for illegal activity
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sim_sec = do(100000)*nflip(n=2021,prob=.024)
+
+ggplot(sim_sec,aes(x=nflip)) +
+  geom_histogram(color="mediumorchid3",fill="mediumorchid2") + ggtitle("Monte Carlo Simulation for Iron Bank") + xlab("Number of Trades Flagged") + theme_minimal()
+
+p_sim_sec = (sum(sim_sec>=70))/100000
+```
+
+The p-value of the simulation is `r p_sim_sec`.
+
+A p-value of `r p_sim_sec` demonstrates that the data is null hypothesis is plausible, although unlikely to be true.
+
+------------------------------------------------------------------------
+
+# **Question 2:**
+
+The null hypothesis being investigated is that the high number of Gourmet Bites chains that fail health inspection is due to chance.
+
+The test statistic is the 8 restuarants that failed the inspection
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+sim_GB = do(100000)*nflip(n=50,prob=.03)
+
+ggplot(sim_GB,aes(x=nflip)) +
+  geom_histogram(color="skyblue4",fill="skyblue3") + ggtitle("Monte Carlo Simulation for Gourmet Bites") + xlab("Number of Gourmet Bite Chains Failing Health Inspections") + theme_minimal()
+
+p_sim_GB = (sum(sim_GB>=8))/100000
+p_sim_GB
+```
+
+The p-value of the simulation is `r p_sim_GB`.
+
+The very small p-value demonstrates that the null hypothesis does not look plausible in light of the data, and that there are some other factors contributing to Gourmet Bites' high rate of health inspection failures.
+
+------------------------------------------------------------------------
+
+# **Question 3:**
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+brown = readLines("brown_sentences.txt")
+letter_freq = read.csv("letter_frequencies.csv")
+```
+
+### **Part A:**
+```{r message=FALSE, warning=FALSE, include=FALSE}
+calculate_chi_squared = function(sentence, freq_table) {
+  
+  # Ensure letter frequencies are normalized and sum to 1
+  freq_table$Probability = freq_table$Probability / sum(freq_table$Probability)
+  
+  # Remove non-letters and convert to uppercase
+  clean_sentence = gsub("[^A-Za-z]", "", sentence)
+  clean_sentence = toupper(clean_sentence)
+  
+  # Count the occurrences of each letter in the sentence
+  observed_counts = table(factor(strsplit(clean_sentence, "")[[1]], levels = freq_table$Letter))
+  
+  # Calculate expected counts
+  total_letters = sum(observed_counts)
+  expected_counts = total_letters * freq_table$Probability
+  
+  # Chi-squared statistic
+  chi_squared_stat = sum((observed_counts - expected_counts)^2 / expected_counts)
+ 
+  return(chi_squared_stat)
+}
+brown_chi_sqs = c()
+for (i in 1:(length(brown))){
+  brown_chi_sqs[i] = calculate_chi_squared(brown[i],letter_freq)
+}
+brown_chi_sqs
+```
+
+### **Part B:**
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+chi_sq = rep(1, 10)
+p_val = c()
+for(i in 1:10) {
+  chi_sq[i] = calculate_chi_squared(sentences[i], letter_freq)
+  p_val[i] = sum(brown_chi_sqs>=chi_sq[i])/length(brown)
+}
+```
+
+```{r echo=FALSE}
+
+plot(p_val, log='y')
+
+kab<-kable(p_val)
+kable_classic_2(kab) %>%
+  kable_styling(latex_options = c("hold_position"))
+  
+```
+
+
+The sentence generated by AI is sentence 6, which we know because it has the smallest p-value when using the chi-squared based on letter frequencies.
